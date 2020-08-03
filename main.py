@@ -1,8 +1,7 @@
 from lxml import html
 import requests
 import re
-from typing import Generator, NamedTuple, Dict, List, Iterable, Set
-from multiprocessing import Process
+from typing import Generator, NamedTuple, Dict, List, Iterable
 from threading import Thread
 
 
@@ -59,29 +58,6 @@ def to_file(path: str, values: Iterable[Book], header: str = None, encoding: str
         writer.writelines(f"\n{line.to_csv_str()}" for line in values)
 
 
-def get_write(
-        url: str, start_page: int, end_page: int,
-        headers: Dict[str, str], path: str,
-        header: str = None, encoding: str = 'utf-8', no_page_exception: bool = False) -> None:
-    editor = editor_catalog(url, start_page, end_page, headers, no_page_exception=no_page_exception)
-    to_file(path, editor, header, encoding=encoding)
-
-
-def processes_to_file(
-        url: str, headers: Dict[str, str], path: str,
-        start_page: int, end_page: int, process_pages: int,
-        encoding: str = 'utf-8', no_page_exception: bool = False) -> List[Process]:
-    process_list: List[Process] = []
-    cur_start_page = start_page
-    cur_end_page = (start_page + process_pages)
-    while cur_start_page < end_page:
-        process_list.append(Process(target=get_write, args=(url, cur_start_page, cur_end_page, headers, path,)))
-        process_list[-1].start()
-        cur_start_page += process_pages + 1
-        cur_end_page += process_pages + 1
-    return process_list
-
-
 class Controller:
     def __init__(self, path: str, header: str, encoding: str = 'utf-8'):
         self.processes: List[Thread] = []
@@ -130,65 +106,3 @@ if __name__ == "__main__":
     controller.start(azbuka_url, agent, 1, 1500, 25)
 
     controller.join()
-
-    # controller.to_csv('editors100.csv', Book.header())
-
-    # eksmo = editor_catalog(eksmo_url, 1, 1, agent)
-    # ast = editor_catalog(ast_url, 1, 1, agent)
-
-    # to_file('editors.csv', eksmo, Book.header())
-    # to_file('editors.csv', ast)
-
-    """
-
-    processes: List[List[Process]] = []
-
-    with open('editors40.csv', 'w', encoding='utf-8') as wr:
-        wr.write(Book.header(delimiter=';'))
-
-    processes.append(processes_to_file(eksmo_url, agent, 'editors40.csv', 1, 500, 500))
-    processes.append(processes_to_file(ast_url, agent, 'editors40.csv', 1, 500, 500))
-    processes.append(processes_to_file(rosmen_url, agent, 'editors40.csv', 1, 500, 500))
-    processes.append(processes_to_file(alpina_pablisher_url, agent, 'editors40.csv', 1, 500, 500))
-    processes.append(processes_to_file(azbuka_url, agent, 'editors40.csv', 1, 500, 500))
-
-    for p1 in processes:
-        for p2 in p1:
-            p2.join()
-
-    """
-    """
-    pages = 500
-
-    with open('editors4.csv', 'w', encoding='utf-8') as wr:
-        wr.write(Book.header(delimiter=';'))
-
-    eksmo = Process(target=get_write, args=(eksmo_url, 1, pages, agent, 'editors4.csv',))
-    eksmo_2 = Process(target=get_write, args=(eksmo_url, pages + 1, pages + 100, agent, 'editors4.csv',))
-
-    ast = Process(target=get_write, args=(ast_url, 1, pages, agent, 'editors4.csv',))
-    ast_2 = Process(target=get_write, args=(ast_url, pages + 1, pages + 100, agent, 'editors4.csv',))
-
-    rosmen = Process(target=get_write, args=(rosmen_url, 1, pages, agent, 'editors4.csv',))
-    alpina_pablisher = Process(target=get_write, args=(alpina_pablisher_url, 1, pages, agent, 'editors4.csv',))
-    azbuka = Process(target=get_write, args=(azbuka_url, 1, pages, agent, 'editors4.csv',))
-
-    eksmo.start()
-    eksmo_2.start()
-    ast.start()
-    ast_2.start()
-    rosmen.start()
-    alpina_pablisher.start()
-    azbuka.start()
-
-    eksmo.join()
-    eksmo_2.join()
-    ast.join()
-    ast_2.join()
-    rosmen.join()
-    alpina_pablisher.join()
-    azbuka.join()
-    """
-
-    # get_write(eksmo_url, 1, 25, agent, 'editors4.csv', no_page_exception=True)
-    # get_write(ast_url, 1, 25, agent, 'editors4.csv', no_page_exception=True)
