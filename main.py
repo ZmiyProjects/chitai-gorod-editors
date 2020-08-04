@@ -31,12 +31,15 @@ def editor_catalog(
     if start_page > end_page or 0 > start_page or 0 > end_page:
         raise ValueError
     for current_page in range(start_page, end_page + 1):
-        page = requests.get(f"{url}?page={current_page}", headers=headers)
-        if page.status_code in {403, 404}:
-            if no_page_exception:
-                raise Exception
-            else:
-                break
+        try:
+            page = requests.get(f"{url}?page={current_page}", headers=headers)
+            if page.status_code in {403, 404}:
+                if no_page_exception:
+                    raise Exception
+                else:
+                    break
+        except:
+            break
         tree = html.fromstring(page.content)
         product_id = tree.xpath(
             "//div[@class='product-card js_product js__product_card js__slider_item']/@data-product")
@@ -47,8 +50,15 @@ def editor_catalog(
         authors = [re.sub(r'[\t\n]+', '', cur_author).replace(' и др.', '') for cur_author in tree.xpath(author_path)]
         years = tree.xpath("//span[@class='publisher']/span[position() = 2]/text()")[1::2]
         editors = tree.xpath("//span[@class='publisher']/span[position() = 2]/text()")[0::2]
-        for p_id, p_price, p_name, a, y, e in zip(product_id, product_price, product_names, authors, years, editors):
-            yield Book(p_id, p_price, p_name.replace(';', '').replace('"', ''), a.split(', '), y, e)
+        for p_id, p_price, p_name, au, y, e in zip(product_id, product_price, product_names, authors, years, editors):
+            if re.match('[0-9]{4}', y) is None or re.match('[А-Яа-я ]+', e) is None:
+                continue
+            if int(y) < 1900:
+                continue
+            print(au)
+            yield Book(
+                p_id, p_price, p_name.replace(';', '').replace('"', ''),
+                [a.replace(',', '').strip() for a in au.replace('И др.', '').split(',')], y, e.upper())
 
 
 def to_file(path: str, values: Iterable[Book], header: str = None, encoding: str = 'utf-8') -> None:
