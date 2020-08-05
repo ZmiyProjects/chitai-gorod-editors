@@ -35,22 +35,23 @@ def to_file(path: str, data: Iterable, header: Union[None, str, List[str]] = Non
 
 if __name__ == "__main__":
     with open("editors100.csv", "r", encoding="utf-8") as reader, \
-            open("books.csv", "w", encoding="utf-8") as books,\
-            open("authors_books.csv", "w", encoding="utf-8") as author_book:
+            open("books.csv", "w", encoding="utf-8") as books:
         find_role = r'\([а-я. \-]+\)'
         csv_data = csv.reader(reader, delimiter=';')
         headers = Header(*next(csv_data), 'role')
         editors = set()
         years = set()
         authors = set()
+        books_authors = set()
         roles = {"автор"}
         books.write(headers.book_header())
-        author_book.write(headers.author_book_header())
+        # author_book.write(headers.author_book_header())
         for i in csv_data:
             books.write(f"\n{i[0]};{i[2]};{i[1]};{i[4]};{i[5]}")
             editors.add(i[5])
             years.add(i[4])
             for j in i[3].split(','):
+                author = j
                 current_role = 'автор'
                 role = re.search(find_role, j)
                 if j != '':
@@ -58,14 +59,17 @@ if __name__ == "__main__":
                         current_role = re.sub(
                             r'[^а-я]+', '-', role.group(0).replace(' ', '-').strip('()').strip()).strip('-')
                         roles.add(current_role)
-                    authors.add(j)
-                    author_book.write(f"\n{j};{i[0]};{current_role}")
-        print(len(authors))
+                        author = re.sub(role.group(0), '', author)
+                    author = re.sub(r'[^А-яA-Zа-яa-z ]', '', author).strip() + '.'
+                    authors.add(author)
+                    # author_book.write(f"\n{author};{i[0]};{current_role}")
+                    books_authors.add(f"{author};{i[0]};{current_role}")
 
         to_file("years.csv", years, headers.edition_year)
         to_file("author.csv", authors, headers.authors)
         to_file("editors.csv", editors, headers.editor)
         to_file("roles.csv", roles, headers.role)
+        to_file("authors_books.csv", books_authors, headers.author_book_header())
 
 
 
