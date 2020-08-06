@@ -55,7 +55,6 @@ def editor_catalog(
                 continue
             if int(y) < 1900:
                 continue
-            print(au)
             yield Book(
                 p_id, p_price, p_name.replace(';', '').replace('"', ''),
                 [a.replace(',', '').strip() for a in au.replace('И др.', '').split(',')], y, e.upper())
@@ -73,15 +72,18 @@ class Controller:
         self.processes: List[Thread] = []
         self.path = path
         self.encoding = encoding
+        self.values: List[str] = []
+        self.header = header
 
-        with open(path, 'w', encoding=encoding) as wr:
-            wr.write(header)
+        # with open(path, 'w', encoding=encoding) as wr:
+        #    wr.write(header)
 
-    def scanner(
-            self, url: str, start_page: int, end_page: int,
-            headers: Dict[str, str], no_page_exception: bool = False):
+    def scanner(self, url: str, start_page: int, end_page: int,
+                headers: Dict[str, str], no_page_exception: bool = False):
         editor = editor_catalog(url, start_page, end_page, headers, no_page_exception=no_page_exception)
-        to_file(self.path, editor, encoding=self.encoding)
+        for i in editor:
+            self.values.append(i.to_csv_str())
+        # to_file(self.path, editor, encoding=self.encoding)
 
     def start(self, url: str, headers: Dict[str, str], start_page: int, end_page: int,
               process_pages: int, no_page_exception: bool = False):
@@ -97,6 +99,11 @@ class Controller:
         for p in self.processes:
             p.join()
 
+    def to_file(self):
+        with open(self.path, 'w', encoding=self.encoding) as wr:
+            wr.write(self.header)
+            wr.writelines(f"\n{i}" for i in self.values)
+
 
 if __name__ == "__main__":
     agent = {
@@ -108,7 +115,7 @@ if __name__ == "__main__":
     alpina_pablisher_url = 'https://www.chitai-gorod.ru/books/publishers/alpina_pablisher/'
     azbuka_url = 'https://www.chitai-gorod.ru/books/publishers/azbuka/'
 
-    controller = Controller('editors100.csv', Book.header(";"))
+    controller = Controller('data/chitai_gorod_catalog.csv', Book.header(";"))
     controller.start(eksmo_url, agent, 1, 1500, 25)
     controller.start(ast_url, agent, 1, 1500, 25)
     controller.start(rosmen_url, agent, 1, 1500, 25)
@@ -116,3 +123,5 @@ if __name__ == "__main__":
     controller.start(azbuka_url, agent, 1, 1500, 25)
 
     controller.join()
+
+    controller.to_file()

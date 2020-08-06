@@ -34,8 +34,8 @@ def to_file(path: str, data: Iterable, header: Union[None, str, List[str]] = Non
 
 
 if __name__ == "__main__":
-    with open("editors100.csv", "r", encoding="utf-8") as reader, \
-            open("books.csv", "w", encoding="utf-8") as books:
+    with open("data/chitai_gorod_catalog.csv", "r", encoding="utf-8") as reader, \
+            open("data/books.csv", "w", encoding="utf-8") as books:
         find_role = r'\([а-я. \-]+\)'
         csv_data = csv.reader(reader, delimiter=';')
         headers = Header(*next(csv_data), 'role')
@@ -49,7 +49,7 @@ if __name__ == "__main__":
         for i in csv_data:
             books.write(f"\n{i[0]};{i[2]};{i[1]};{i[4]};{i[5]}")
             editors.add(i[5])
-            years.add(i[4])
+            years.add(int(i[4]))
             for j in i[3].split(','):
                 author = j
                 current_role = 'автор'
@@ -65,11 +65,15 @@ if __name__ == "__main__":
                     # author_book.write(f"\n{author};{i[0]};{current_role}")
                     books_authors.add(f"{author};{i[0]};{current_role}")
 
-        to_file("years.csv", years, headers.edition_year)
-        to_file("author.csv", authors, headers.authors)
-        to_file("editors.csv", editors, headers.editor)
-        to_file("roles.csv", roles, headers.role)
-        to_file("authors_books.csv", books_authors, headers.author_book_header())
+        for year in range(min(years), max(years)):
+            if year not in years:
+                years.add(year)
+
+        to_file("data/years.csv", years, headers.edition_year)
+        to_file("data/authors.csv", authors, headers.authors)
+        to_file("data/editors.csv", editors, headers.editor)
+        to_file("data/roles.csv", roles, headers.role)
+        to_file("data/authors_books.csv", books_authors, headers.author_book_header())
 
 
 
