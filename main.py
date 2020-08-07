@@ -1,8 +1,41 @@
+import csv
 from lxml import html
 import requests
 import re
-from typing import Generator, NamedTuple, Dict, List, Iterable
+from typing import Generator, NamedTuple, Dict, List, Iterable, Union
 from threading import Thread
+from datetime import datetime
+import os
+
+
+class Header(NamedTuple):
+    product_id: str
+    product_price: str
+    book_name: str
+    authors: str
+    edition_year: str
+    editor: str
+    role: str
+
+    def book_header(self, sep: str = ';'):
+        return "{1}{0}{2}{0}{3}{0}{4}{0}{5}". \
+            format(sep, self.product_id, self.book_name, self.product_price, self.edition_year, self.editor)
+
+    def author_book_header(self, sep: str = ';'):
+        return "{1}{0}{2}{0}{3}".format(sep, self.authors, self.product_id, self.role)
+
+
+def to_file(path: str, data: Iterable, header: Union[None, str, List[str]] = None,
+            encoding: str = 'utf-8', sep: str = ';'):
+    with open(path, 'w', encoding=encoding) as wr:
+        if header is not None:
+            if isinstance(header, str):
+                wr.write(header)
+            elif isinstance(header, list):
+                wr.write(f"{sep}".join(header))
+            else:
+                raise ValueError
+        wr.writelines(f"\n{line}" for line in data)
 
 
 class Book(NamedTuple):
@@ -19,6 +52,10 @@ class Book(NamedTuple):
     def to_csv_str(self, delimiter: str = ';', list_delimiter: str = ','):
         return f"{self.product_id}{delimiter}{self.product_price}{delimiter}{self.book_name}{delimiter}" \
                f"{f'{list_delimiter}'.join(self.authors)}{delimiter}{self.edition_year}{delimiter}{self.editor}"
+
+    def book_str(self, sep: str = ';'):
+        return "{1}{0}{2}{0}{3}{0}{4}{0}{5}".format(
+            sep, self.product_id, self.book_name, self.product_price, self.edition_year, self.editor)
 
     @staticmethod
     def header(delimiter: str = ';'):
@@ -60,13 +97,6 @@ def editor_catalog(
                 [a.replace(',', '').strip() for a in au.replace('И др.', '').split(',')], y, e.upper())
 
 
-def to_file(path: str, values: Iterable[Book], header: str = None, encoding: str = 'utf-8') -> None:
-    with open(path, 'a', encoding=encoding) as writer:
-        if header is not None:
-            writer.write(header)
-        writer.writelines(f"\n{line.to_csv_str()}" for line in values)
-
-
 class Controller:
     def __init__(self, path: str, header: str, encoding: str = 'utf-8'):
         self.processes: List[Thread] = []
@@ -74,6 +104,12 @@ class Controller:
         self.encoding = encoding
         self.values: List[str] = []
         self.header = header
+        self.editors = set()
+        self.years = set()
+        self.authors = set()
+        self.books = set()
+        self.books_authors = set()
+        self.roles = {"автор"}
 
         # with open(path, 'w', encoding=encoding) as wr:
         #    wr.write(header)
@@ -81,8 +117,27 @@ class Controller:
     def scanner(self, url: str, start_page: int, end_page: int,
                 headers: Dict[str, str], no_page_exception: bool = False):
         editor = editor_catalog(url, start_page, end_page, headers, no_page_exception=no_page_exception)
-        for i in editor:
-            self.values.append(i.to_csv_str())
+        find_role = r'\([а-я. \-]+\)'
+        for ed in editor:
+            self.books.add(ed.book_str())
+            self.values.append(ed.to_csv_str())
+            self.editors.add(ed.editor)
+            self.years.add(int(ed.edition_year))
+            for j in ed.authors:
+                author = j
+                current_role = 'автор'
+                role = re.search(find_role, j)
+                if j != '':
+                    if role:
+                        current_role = re.sub(
+                            r'[^а-я]+', '-', role.group(0).replace(' ', '-').strip('()').strip()).strip('-')
+                        self.roles.add(current_role)
+                        author = re.sub(role.group(0), '', author)
+                    author = re.sub(r'[^А-яA-Zа-яa-z ]', '', author).strip() + '.'
+                    self.authors.add(author)
+                    # author_book.write(f"\n{author};{i[0]};{current_role}")
+                    self.books_authors.add(f"{author};{ed.product_id};{current_role}")
+
         # to_file(self.path, editor, encoding=self.encoding)
 
     def start(self, url: str, headers: Dict[str, str], start_page: int, end_page: int,
@@ -100,9 +155,21 @@ class Controller:
             p.join()
 
     def to_file(self):
-        with open(self.path, 'w', encoding=self.encoding) as wr:
-            wr.write(self.header)
-            wr.writelines(f"\n{i}" for i in self.values)
+        for year in range(min(self.years), max(self.years)):
+            if year not in self.years:
+                self.years.add(year)
+        dir_name = datetime.strftime(datetime.now(), "%d.%m.%Y_%H-%M-%S")
+        os.mkdir(dir_name)
+        headers = Header('product_id', 'product_price', 'book_name', 'authors', 'edition_year', 'editor', 'role')
+
+        # author_book.write(headers.author_book_header())
+        to_file(dir_name + "/chitai_gorod_catalog.csv", self.values, self.header)
+        to_file(dir_name + "/books.csv", self.books, headers.book_header())
+        to_file(dir_name + "/years.csv", self.years, headers.edition_year)
+        to_file(dir_name + "/authors.csv", self.authors, headers.authors)
+        to_file(dir_name + "/editors.csv", self.editors, headers.editor)
+        to_file(dir_name + "/roles.csv", self.roles, headers.role)
+        to_file(dir_name + "/authors_books.csv", self.books_authors, headers.author_book_header())
 
 
 if __name__ == "__main__":
@@ -115,7 +182,7 @@ if __name__ == "__main__":
     alpina_pablisher_url = 'https://www.chitai-gorod.ru/books/publishers/alpina_pablisher/'
     azbuka_url = 'https://www.chitai-gorod.ru/books/publishers/azbuka/'
 
-    controller = Controller('data/chitai_gorod_catalog.csv', Book.header(";"))
+    controller = Controller('chitai_gorod_catalog.csv', Book.header(";"))
     controller.start(eksmo_url, agent, 1, 1500, 25)
     controller.start(ast_url, agent, 1, 1500, 25)
     controller.start(rosmen_url, agent, 1, 1500, 25)
