@@ -59,7 +59,16 @@ class Book(NamedTuple):
 
     @staticmethod
     def header(delimiter: str = ';'):
-        return "product_id{0}product_price{0}book_name{0}authors{0}edition_year{0}editor".format(delimiter)
+        return "book_id{0}price{0}book_name{0}authors{0}edition_year{0}editor_name".format(delimiter)
+
+    @staticmethod
+    def book_header(sep: str = ';'):
+        return "{1}{0}{2}{0}{3}{0}{4}{0}{5}". \
+            format(sep, "book_id", "book_name", "price", "edition_year", "editor_name")
+
+    @staticmethod
+    def author_book_header(sep: str = ';'):
+        return "{1}{0}{2}{0}{3}".format(sep, "author_name", "book_id", "role_name")
 
 
 def editor_catalog(
@@ -98,12 +107,10 @@ def editor_catalog(
 
 
 class Controller:
-    def __init__(self, path: str, header: str, encoding: str = 'utf-8'):
+    def __init__(self, encoding: str = 'utf-8'):
         self.processes: List[Thread] = []
-        self.path = path
         self.encoding = encoding
         self.values: List[str] = []
-        self.header = header
         self.editors = set()
         self.years = set()
         self.authors = set()
@@ -160,16 +167,15 @@ class Controller:
                 self.years.add(year)
         dir_name = datetime.strftime(datetime.now(), "%d.%m.%Y_%H-%M-%S")
         os.mkdir(dir_name)
-        headers = Header('product_id', 'product_price', 'book_name', 'authors', 'edition_year', 'editor', 'role')
 
         # author_book.write(headers.author_book_header())
-        to_file(dir_name + "/chitai_gorod_catalog.csv", self.values, self.header)
-        to_file(dir_name + "/books.csv", self.books, headers.book_header())
-        to_file(dir_name + "/years.csv", self.years, headers.edition_year)
-        to_file(dir_name + "/authors.csv", self.authors, headers.authors)
-        to_file(dir_name + "/editors.csv", self.editors, headers.editor)
-        to_file(dir_name + "/roles.csv", self.roles, headers.role)
-        to_file(dir_name + "/authors_books.csv", self.books_authors, headers.author_book_header())
+        to_file(dir_name + "/chitai_gorod_catalog.csv", self.values, Book.header())
+        to_file(dir_name + "/books.csv", self.books, Book.book_header())
+        to_file(dir_name + "/years.csv", self.years, "edition_year")
+        to_file(dir_name + "/authors.csv", self.authors, "author_name")
+        to_file(dir_name + "/editors.csv", self.editors, "editor_name")
+        to_file(dir_name + "/roles.csv", self.roles, "role_name")
+        to_file(dir_name + "/authors_books.csv", self.books_authors, Book.author_book_header())
 
 
 if __name__ == "__main__":
@@ -182,7 +188,7 @@ if __name__ == "__main__":
     alpina_pablisher_url = 'https://www.chitai-gorod.ru/books/publishers/alpina_pablisher/'
     azbuka_url = 'https://www.chitai-gorod.ru/books/publishers/azbuka/'
 
-    controller = Controller('chitai_gorod_catalog.csv', Book.header(";"))
+    controller = Controller('chitai_gorod_catalog.csv')
     controller.start(eksmo_url, agent, 1, 1500, 25)
     controller.start(ast_url, agent, 1, 1500, 25)
     controller.start(rosmen_url, agent, 1, 1500, 25)

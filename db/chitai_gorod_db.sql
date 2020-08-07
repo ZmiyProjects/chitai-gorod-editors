@@ -1,4 +1,4 @@
--- CREATE DATABASE chitai_gorod;
+CREATE DATABASE chitai_gorod_08_08_2020_01_05_13;
 
 CREATE SCHEMA catalog;
 
@@ -40,7 +40,7 @@ CREATE TABLE catalog.AuthorBook(
 -- Скрипт для загрузки данных в БД из csv, в переменной csv_path необходимо указать путь к папке с файлами
 DO $$
     DECLARE
-        csv_path VARCHAR(255) := 'C:/projects/data/';
+        csv_path VARCHAR(255) := 'C:/projects/08.08.2020_01-05-13/';
     BEGIN
         CREATE TEMPORARY TABLE temp_editor(name VARCHAR(255));
         CREATE TEMPORARY TABLE temp_author_role(role_name VARCHAR(50));
@@ -79,3 +79,5 @@ DO $$
         FROM temp_author_book AS TAB;
     END;
     $$ LANGUAGE plpgsql;
+
+

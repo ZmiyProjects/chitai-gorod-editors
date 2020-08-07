@@ -152,12 +152,3 @@ FROM catalog.Editor AS E
             FROM catalog.Book AS B WHERE B.price = (SELECT MAX(price) FROM catalog.Book AS B2 WHERE B2.editor_id = E.editor_id)
             ORDER BY B.book_id
             FETCH FIRST ROW ONLY) As B ON true;
-
-SELECT
-    A.author_name,
-    B.book_name,
-    B.book_id
-FROM catalog.AuthorBook AS AB
-    JOIN catalog.Book AS B ON AB.book_id = B.book_id
-    JOIN catalog.Author AS A ON A.author_id = AB.author_id
-WHERE B.book_name = 'Басни';
