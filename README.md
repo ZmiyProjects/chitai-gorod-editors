@@ -13,7 +13,7 @@
 
 # Структура csv файлов с данными
 
-<img src="csv_er_model.jpg" alt="er_csv"/>
+![er_csv](C:/Users/RTFE4/PycharmProjects/chitai-gorod-editors/csv_er_model.jpg)
 
 ## authors.csv 
 перечень присутствующих в каталоге писателей
@@ -49,7 +49,7 @@
 # Структура базы данных
 
 Структура БД во многом повторяет структуру взаимосвязей csv файлов, за некоторыми исключениями
-<img src="er_model.jpg" alt="er_sql"/>
+![er_sql](C:/Users/RTFE4/PycharmProjects/chitai-gorod-editors/er_model.jpg)
 
 ## Author
 перечень присутствующих в каталоге писателей
