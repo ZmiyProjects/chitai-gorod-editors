@@ -1,4 +1,3 @@
-import csv
 from lxml import html
 import requests
 import re
@@ -6,23 +5,6 @@ from typing import Generator, NamedTuple, Dict, List, Iterable, Union
 from threading import Thread
 from datetime import datetime
 import os
-
-
-class Header(NamedTuple):
-    product_id: str
-    product_price: str
-    book_name: str
-    authors: str
-    edition_year: str
-    editor: str
-    role: str
-
-    def book_header(self, sep: str = ';'):
-        return "{1}{0}{2}{0}{3}{0}{4}{0}{5}". \
-            format(sep, self.product_id, self.book_name, self.product_price, self.edition_year, self.editor)
-
-    def author_book_header(self, sep: str = ';'):
-        return "{1}{0}{2}{0}{3}".format(sep, self.authors, self.product_id, self.role)
 
 
 def to_file(path: str, data: Iterable, header: Union[None, str, List[str]] = None,
@@ -118,9 +100,6 @@ class Controller:
         self.books_authors = set()
         self.roles = {"автор"}
 
-        # with open(path, 'w', encoding=encoding) as wr:
-        #    wr.write(header)
-
     def scanner(self, url: str, start_page: int, end_page: int,
                 headers: Dict[str, str], no_page_exception: bool = False):
         editor = editor_catalog(url, start_page, end_page, headers, no_page_exception=no_page_exception)
@@ -142,10 +121,7 @@ class Controller:
                         author = re.sub(role.group(0), '', author)
                     author = re.sub(r'[^А-яA-Zа-яa-z ]', '', author).strip() + '.'
                     self.authors.add(author)
-                    # author_book.write(f"\n{author};{i[0]};{current_role}")
                     self.books_authors.add(f"{author};{ed.product_id};{current_role}")
-
-        # to_file(self.path, editor, encoding=self.encoding)
 
     def start(self, url: str, headers: Dict[str, str], start_page: int, end_page: int,
               process_pages: int, no_page_exception: bool = False):
@@ -168,7 +144,6 @@ class Controller:
         dir_name = datetime.strftime(datetime.now(), "%d.%m.%Y_%H-%M-%S")
         os.mkdir(dir_name)
 
-        # author_book.write(headers.author_book_header())
         to_file(dir_name + "/chitai_gorod_catalog.csv", self.values, Book.header())
         to_file(dir_name + "/books.csv", self.books, Book.book_header())
         to_file(dir_name + "/years.csv", self.years, "edition_year")
